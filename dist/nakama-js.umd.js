@@ -1474,17 +1474,6 @@
       return Session;
   }());
 
-  function b64EncodeUnicode(str) {
-      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(_match, p1) {
-          return String.fromCharCode(Number('0x' + p1));
-      }));
-  }
-  function b64DecodeUnicode(str) {
-      return decodeURIComponent(atob(str).split('').map(function (c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-  }
-
   var DefaultSocket = (function () {
       function DefaultSocket(host, port, useSSL, verbose) {
           if (useSSL === void 0) { useSSL = false; }
@@ -1539,7 +1528,6 @@
                       });
                   }
                   else if (message.match_data) {
-                      message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
                       message.match_data.op_code = parseInt(message.match_data.op_code);
                       _this.onmatchdata(message.match_data);
                   }
@@ -1559,7 +1547,6 @@
                       _this.onstreamdata(message.stream_data);
                   }
                   else if (message.channel_message) {
-                      message.channel_message.content = JSON.parse(message.channel_message.content);
                       _this.onchannelmessage(message.channel_message);
                   }
                   else if (message.channel_presence_event) {
@@ -1584,7 +1571,12 @@
                       executor.reject(message.error);
                   }
                   else {
-                      executor.resolve(message);
+                      if (message.match) {
+                          executor.resolve(message.match);
+                      }
+                      else {
+                          executor.resolve(message);
+                      }
                   }
               }
           };
@@ -1675,18 +1667,13 @@
               }
               else {
                   if (m.match_data_send) {
-                      m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
                       m.match_data_send.op_code = m.match_data_send.op_code.toString();
                       _this.socket.send(JSON.stringify(m));
                       resolve();
                   }
                   else {
-                      if (m.channel_message_send) {
-                          m.channel_message_send.content = JSON.stringify(m.channel_message_send.content);
-                      }
-                      else if (m.channel_message_update) {
-                          m.channel_message_update.content = JSON.stringify(m.channel_message_update.content);
-                      }
+                      if (m.channel_message_send) ;
+                      else if (m.channel_message_update) ;
                       var cid = _this.generatecid();
                       _this.cIds[cid] = { resolve: resolve, reject: reject };
                       m.cid = cid;
