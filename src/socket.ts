@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-import {ApiNotification, ApiRpc} from "./api.gen";
-import {Session} from "./session";
-import {Notification} from "./client";
-import {b64EncodeUnicode, b64DecodeUnicode} from "./utils";
+import { ApiNotification, ApiRpc } from "./api.gen";
+import { Session } from "./session";
+import { Notification } from "./client";
+// rjk
+//import { b64EncodeUnicode, b64DecodeUnicode } from "./utils";
+// rjk
+//import { exec } from "child_process";
 
 /** Requires the set of keys K to exist in type T. */
 type RequireKeys<T, K extends keyof T> = Omit<Partial<T>, K> & Pick<T, K>;
@@ -238,7 +241,7 @@ export interface Status {
 
 /** Start receiving status updates for some set of users. */
 export interface StatusFollow {
-  status_follow: {user_ids: string[];}
+  status_follow: { user_ids: string[]; }
 }
 
 /** A batch of status updates for a given user. */
@@ -249,12 +252,12 @@ export interface StatusPresenceEvent {
 
 /** Stop receiving status updates for some set of users. */
 export interface StatusUnfollow {
-  status_unfollow: {user_ids: string[];};
+  status_unfollow: { user_ids: string[]; };
 }
 
 /** Set the user's own status. */
 export interface StatusUpdate {
-  status_update: {status?: string;};
+  status_update: { status?: string; };
 }
 
 /** A socket connection to Nakama server. */
@@ -272,52 +275,52 @@ export interface Socket {
     StatusFollow | StatusUnfollow | StatusUpdate): Promise<any>;
 
   /// Join the matchmaker pool and search for opponents on the server.
-  addMatchmaker(query : string, minCount : number, maxCount : number,  
-    stringProperties? : Record<string, string>, numericProperties? : Record<string, number>)
+  addMatchmaker(query: string, minCount: number, maxCount: number,
+    stringProperties?: Record<string, string>, numericProperties?: Record<string, number>)
     : Promise<MatchmakerMatched>;
-  
+
   // Create a multiplayer match on the server.
-  createMatch() : Promise<Match>;
+  createMatch(): Promise<Match>;
 
   // Subscribe to one or more users for their status updates.
-  followUsers(user_ids: string[]) : Promise<Status>;
+  followUsers(user_ids: string[]): Promise<Status>;
 
   // Join a chat channel on the server.
-  joinChat(target: string, type: number, persistence: boolean, hidden: boolean) : Promise<Channel>;
+  joinChat(target: string, type: number, persistence: boolean, hidden: boolean): Promise<Channel>;
 
   // Join a multiplayer match.
-  joinMatch(match_id?: string, token?: string, metadata?: {}) : Promise<Match>; 
+  joinMatch(match_id?: string, token?: string, metadata?: {}): Promise<Match>;
 
   // Leave a chat channel on the server.
-  leaveChat(channel_id: string) : Promise<void>;
+  leaveChat(channel_id: string): Promise<void>;
 
   // Leave a multiplayer match on the server.
-  leaveMatch(matchId : string) : Promise<void>;
+  leaveMatch(matchId: string): Promise<void>;
 
   // Remove a chat message from a chat channel on the server.
-  removeChatMessage(channel_id: string, message_id: string) : Promise<ChannelMessageAck>;
-  
+  removeChatMessage(channel_id: string, message_id: string): Promise<ChannelMessageAck>;
+
   // Leave the matchmaker pool with the provided ticket.
-  removeMatchmaker(ticket : string) : Promise<void>;
+  removeMatchmaker(ticket: string): Promise<void>;
 
   // Execute an RPC function to the server.
-  rpc(id?: string, payload?: string, http_key?: string) : Promise<ApiRpc>
+  rpc(id?: string, payload?: string, http_key?: string): Promise<ApiRpc>
 
   // Send input to a multiplayer match on the server.
   // When no presences are supplied the new match state will be sent to all presences.
-  sendMatchState(matchId: string, opCode : number, data: any, presence? : Presence) : Promise<MatchData>;
+  sendMatchState(matchId: string, opCode: number, data: any, presence?: Presence): Promise<MatchData>;
 
   // Unfollow one or more users from their status updates.
-  unfollowUsers(user_ids : string[]) : Promise<void>;
+  unfollowUsers(user_ids: string[]): Promise<void>;
 
   // Update a chat message on a chat channel in the server.
-  updateChatMessage(channel_id: string, message_id : string, content: any) : Promise<ChannelMessageAck>;
+  updateChatMessage(channel_id: string, message_id: string, content: any): Promise<ChannelMessageAck>;
 
   // Update the status for the current user online.
-  updateStatus(status? : string) : Promise<void>;
+  updateStatus(status?: string): Promise<void>;
 
   // Send a chat message to a chat channel on the server.
-  writeChatMessage(channel_id: string, content: any) : Promise<ChannelMessageAck>;
+  writeChatMessage(channel_id: string, content: any): Promise<ChannelMessageAck>;
 
   // Handle disconnect events received from the socket.
   ondisconnect: (evt: Event) => void;
@@ -358,13 +361,13 @@ export class DefaultSocket implements Socket {
   private nextCid: number;
 
   constructor(
-      readonly host: string,
-      readonly port: string,
-      readonly useSSL: boolean = false,
-      public verbose: boolean = false) {
+    readonly host: string,
+    readonly port: string,
+    readonly useSSL: boolean = false,
+    public verbose: boolean = false) {
     this.cIds = {};
     this.nextCid = 1;
-  }  
+  }
 
   generatecid(): string {
     const cid = this.nextCid.toString();
@@ -413,7 +416,8 @@ export class DefaultSocket implements Socket {
             this.onnotification(notification);
           });
         } else if (message.match_data) {
-          message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
+          // rjk removed for protobuf (raw bytes) support
+          //message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
           message.match_data.op_code = parseInt(message.match_data.op_code);
           this.onmatchdata(message.match_data);
         } else if (message.match_presence_event) {
@@ -427,7 +431,8 @@ export class DefaultSocket implements Socket {
         } else if (message.stream_data) {
           this.onstreamdata(<StreamData>message.stream_data);
         } else if (message.channel_message) {
-          message.channel_message.content = JSON.parse(message.channel_message.content);
+          // rjk removed for protobuf (raw bytes) support
+          //message.channel_message.content = JSON.parse(message.channel_message.content);
           this.onchannelmessage(<ChannelMessage>message.channel_message);
         } else if (message.channel_presence_event) {
           this.onchannelpresence(<ChannelPresenceEvent>message.channel_presence_event);
@@ -449,7 +454,13 @@ export class DefaultSocket implements Socket {
         if (message.error) {
           executor.reject(<SocketError>message.error);
         } else {
-          executor.resolve(message);
+          // rjk the match return from joinmatch includes the envelope of cid.
+          // strip it off
+          if (message.match) {
+            executor.resolve(message.match)
+          } else {
+            executor.resolve(message);
+          }
         }
       }
     }
@@ -554,19 +565,22 @@ export class DefaultSocket implements Socket {
         reject("Socket connection has not been established yet.");
       } else {
         if (m.match_data_send) {
-          m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
+          // rjk removed for protobuf (raw bytes) support
+          //m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
           m.match_data_send.op_code = m.match_data_send.op_code.toString();
           this.socket.send(JSON.stringify(m));
           resolve();
         } else {
           if (m.channel_message_send) {
-            m.channel_message_send.content = JSON.stringify(m.channel_message_send.content);
+            // rjk removed for protobuf (raw bytes) support
+            //m.channel_message_send.content = JSON.stringify(m.channel_message_send.content);
           } else if (m.channel_message_update) {
-            m.channel_message_update.content = JSON.stringify(m.channel_message_update.content);
+            // rjk removed for protobuf (raw bytes) support
+            //m.channel_message_update.content = JSON.stringify(m.channel_message_update.content);
           }
 
           const cid = this.generatecid();
-          this.cIds[cid] = {resolve, reject};
+          this.cIds[cid] = { resolve, reject };
 
           // Add id for promise executor.
           m.cid = cid;
@@ -581,41 +595,41 @@ export class DefaultSocket implements Socket {
   }
 
 
-  addMatchmaker(query : string, minCount : number, maxCount : number,  
-    stringProperties? : Record<string, string>, numericProperties? : Record<string, number>)
+  addMatchmaker(query: string, minCount: number, maxCount: number,
+    stringProperties?: Record<string, string>, numericProperties?: Record<string, number>)
     : Promise<MatchmakerMatched> {
 
-      const matchMakerAdd : MatchmakerAdd = 
-      {
-        "matchmaker_add": {
-          min_count: minCount, 
-          max_count: maxCount, 
-          query: query, 
-          string_properties: stringProperties, 
-          numeric_properties: numericProperties
-        }
-      };
+    const matchMakerAdd: MatchmakerAdd =
+    {
+      "matchmaker_add": {
+        min_count: minCount,
+        max_count: maxCount,
+        query: query,
+        string_properties: stringProperties,
+        numeric_properties: numericProperties
+      }
+    };
 
-      return this.send(matchMakerAdd);
-    }
+    return this.send(matchMakerAdd);
+  }
 
   createMatch(): Promise<Match> {
-    return this.send({match_create: {}});
+    return this.send({ match_create: {} });
   }
-  
-  followUsers(userIds : string[]): Promise<Status> {
-    return this.send({status_follow: {user_ids: userIds}});
+
+  followUsers(userIds: string[]): Promise<Status> {
+    return this.send({ status_follow: { user_ids: userIds } });
   }
-  
+
   joinChat(target: string, type: number, persistence: boolean, hidden: boolean): Promise<Channel> {
-    
+
     return this.send(
       {
         channel_join: {
-            target: target,
-            type: type,
-            persistence: persistence,
-            hidden: hidden     
+          target: target,
+          type: type,
+          persistence: persistence,
+          hidden: hidden
         }
       }
     );
@@ -629,34 +643,34 @@ export class DefaultSocket implements Socket {
           metadata: metadata,
           token: token
         }
-    });
+      });
   }
 
   leaveChat(channel_id: string): Promise<void> {
-    return this.send({channel_leave: {channel_id: channel_id}});
+    return this.send({ channel_leave: { channel_id: channel_id } });
   }
-  
+
   leaveMatch(matchId: string): Promise<void> {
-    return this.send({match_leave: {match_id: matchId}});
+    return this.send({ match_leave: { match_id: matchId } });
   }
 
   removeChatMessage(channel_id: string, message_id: string): Promise<ChannelMessageAck> {
     return this.send
-    (
-      {
-        channel_message_remove: {
-          channel_id: channel_id, 
-          message_id: message_id
+      (
+        {
+          channel_message_remove: {
+            channel_id: channel_id,
+            message_id: message_id
+          }
         }
-      }
-    );
+      );
   }
 
   removeMatchmaker(ticket: string): Promise<void> {
-    return this.send({matchmaker_remove: {ticket: ticket}});
+    return this.send({ matchmaker_remove: { ticket: ticket } });
   }
 
-  rpc(id?: string, payload?: string, http_key?: string) : Promise<ApiRpc> {
+  rpc(id?: string, payload?: string, http_key?: string): Promise<ApiRpc> {
     return this.send(
       {
         rpc: {
@@ -667,31 +681,31 @@ export class DefaultSocket implements Socket {
       });
   }
 
-  sendMatchState(matchId: string, opCode : number, data: any, presence? : Presence): Promise<MatchData> {
+  sendMatchState(matchId: string, opCode: number, data: any, presence?: Presence): Promise<MatchData> {
     return this.send(
       {
         match_data_send: {
-          match_id : matchId,
+          match_id: matchId,
           op_code: opCode,
           data: data,
           presence: presence
         }
-    });
+      });
   }
 
-  unfollowUsers(user_ids : string[]): Promise<void> {
-    return this.send({status_unfollow: {user_ids: user_ids}});
+  unfollowUsers(user_ids: string[]): Promise<void> {
+    return this.send({ status_unfollow: { user_ids: user_ids } });
   }
 
-  updateChatMessage(channel_id: string, message_id : string, content: any): Promise<ChannelMessageAck> {
-    return this.send({channel_message_update: {channel_id: channel_id, message_id: message_id, content: content}});
+  updateChatMessage(channel_id: string, message_id: string, content: any): Promise<ChannelMessageAck> {
+    return this.send({ channel_message_update: { channel_id: channel_id, message_id: message_id, content: content } });
   }
 
   updateStatus(status?: string): Promise<void> {
-    return this.send({status_update: {status: status}});
+    return this.send({ status_update: { status: status } });
   }
 
   writeChatMessage(channel_id: string, content: any): Promise<ChannelMessageAck> {
-    return this.send({channel_message_send: {channel_id: channel_id, content: content}});
+    return this.send({ channel_message_send: { channel_id: channel_id, content: content } });
   }
 };

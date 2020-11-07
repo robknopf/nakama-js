@@ -19,3 +19,5 @@ import "whatwg-fetch";
 
 export * from "./client";
 export * from "./session";
+export {Socket} from "./socket";
+
