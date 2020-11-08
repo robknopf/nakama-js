@@ -17,8 +17,7 @@
 import { ApiNotification, ApiRpc } from "./api.gen";
 import { Session } from "./session";
 import { Notification } from "./client";
-// rjk
-//import { b64EncodeUnicode, b64DecodeUnicode } from "./utils";
+import { b64EncodeUnicode, b64DecodeUnicode } from "./utils";
 // rjk
 //import { exec } from "child_process";
 
@@ -416,8 +415,7 @@ export class DefaultSocket implements Socket {
             this.onnotification(notification);
           });
         } else if (message.match_data) {
-          // rjk removed for protobuf (raw bytes) support
-          //message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
+          message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
           message.match_data.op_code = parseInt(message.match_data.op_code);
           this.onmatchdata(message.match_data);
         } else if (message.match_presence_event) {
@@ -431,8 +429,7 @@ export class DefaultSocket implements Socket {
         } else if (message.stream_data) {
           this.onstreamdata(<StreamData>message.stream_data);
         } else if (message.channel_message) {
-          // rjk removed for protobuf (raw bytes) support
-          //message.channel_message.content = JSON.parse(message.channel_message.content);
+          message.channel_message.content = JSON.parse(message.channel_message.content);
           this.onchannelmessage(<ChannelMessage>message.channel_message);
         } else if (message.channel_presence_event) {
           this.onchannelpresence(<ChannelPresenceEvent>message.channel_presence_event);
@@ -454,11 +451,15 @@ export class DefaultSocket implements Socket {
         if (message.error) {
           executor.reject(<SocketError>message.error);
         } else {
-          // rjk the match return from joinmatch includes the envelope of cid.
-          // strip it off
+          // rjk 
+          // the callback for match message is expecting the match as the payload,
+          // not the wrapper of the payload (that includes the cid)
+          // if it has a match field in the message, pass that instead of the message
+          // begin fix
           if (message.match) {
             executor.resolve(message.match)
           } else {
+            // end fix
             executor.resolve(message);
           }
         }
@@ -565,18 +566,15 @@ export class DefaultSocket implements Socket {
         reject("Socket connection has not been established yet.");
       } else {
         if (m.match_data_send) {
-          // rjk removed for protobuf (raw bytes) support
-          //m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
+          m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
           m.match_data_send.op_code = m.match_data_send.op_code.toString();
           this.socket.send(JSON.stringify(m));
           resolve();
         } else {
           if (m.channel_message_send) {
-            // rjk removed for protobuf (raw bytes) support
-            //m.channel_message_send.content = JSON.stringify(m.channel_message_send.content);
+            m.channel_message_send.content = JSON.stringify(m.channel_message_send.content);
           } else if (m.channel_message_update) {
-            // rjk removed for protobuf (raw bytes) support
-            //m.channel_message_update.content = JSON.stringify(m.channel_message_update.content);
+            m.channel_message_update.content = JSON.stringify(m.channel_message_update.content);
           }
 
           const cid = this.generatecid();
