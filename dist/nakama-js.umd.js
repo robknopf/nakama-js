@@ -1474,17 +1474,6 @@
       return Session;
   }());
 
-  function b64EncodeUnicode(str) {
-      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(_match, p1) {
-          return String.fromCharCode(Number('0x' + p1));
-      }));
-  }
-  function b64DecodeUnicode(str) {
-      return decodeURIComponent(atob(str).split('').map(function (c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-  }
-
   var DefaultSocket = (function () {
       function DefaultSocket(host, port, useSSL, verbose) {
           if (useSSL === void 0) { useSSL = false; }
@@ -1539,7 +1528,7 @@
                       });
                   }
                   else if (message.match_data) {
-                      message.match_data.data = message.match_data.data != null ? JSON.parse(b64DecodeUnicode(message.match_data.data)) : null;
+                      message.match_data.data = message.match_data.data != null ? Buffer.from(message.match_data.data, 'base64') : null;
                       message.match_data.op_code = parseInt(message.match_data.op_code);
                       _this.onmatchdata(message.match_data);
                   }
@@ -1680,7 +1669,7 @@
               }
               else {
                   if (m.match_data_send) {
-                      m.match_data_send.data = b64EncodeUnicode(JSON.stringify(m.match_data_send.data));
+                      m.match_data_send.data = Buffer.from(m.match_data_send.data).toString('base64');
                       m.match_data_send.op_code = m.match_data_send.op_code.toString();
                       _this.socket.send(JSON.stringify(m));
                       resolve();
